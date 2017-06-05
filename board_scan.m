@@ -1,36 +1,35 @@
 % author:linjin
-% data:2017/5/19
+% data:2017/6/5
 % version:1.0
-% filename:temperature_relationship.m
-% describe:测试DA芯片温度与托盘输出最大电压的变化关系
-% 测试方法：将同一DA板的4个通道校准到1.28V峰峰值
-% 无限循环，读取温度，读取电压，绘图
-%%
-clc;
-clear all;
+% filename:board_scan.m
+% describe:测试DA板4个通道的扫码输出
+% 测试方法：
+% 1. 打开DA
+% 2. 校准增益
+% 3. 校准偏置
+% 4. 设置起点为0
+% 5. 设置步长
+% 6. 设置电压记录数组
+% 7. 主循环直到最大值
+%    7.1 设置默认电压值
+%    7.2 测量电压
+% 8. 保存matlab文件、
 %% 系统校正目标值
-dac_ip='10.0.2.1';
-dmm1_ip='10.0.254.2';
-dmm2_ip='10.0.254.1';
-dmm3_ip='10.0.254.7';
-dmm4_ip='10.0.254.8';
+dac_ip='10.0.2.2';
+dmm1_ip='10.0.254.3';
+dmm2_ip='10.0.254.4';
+dmm3_ip='10.0.254.5';
+dmm4_ip='10.0.254.6';
 
 dac_ch=1;
-gain_code1 = 398;
-gain_code2 = 398;
-gain_code3 = 398;
-gain_code4 = 398;
-offset_code1=-177;
-offset_code2=-177;
-offset_code3=-177;
-offset_code4=-177;
 %% 系统参数校正
 GainCode   =zeros(1,4);
 GainVoltage =zeros(1,4);
 OffsetCode =zeros(1,4);
 OffsetVoltage=zeros(1,4);
+target_volt = 1.6;
 %%
-[GainCode,GainVoltage,OffsetCode,OffsetVoltage]=GainOffsetCorrect(dmm1_ip,dmm2_ip,dmm3_ip,dmm4_ip,dac_ip,80);
+[GainCode,GainVoltage,OffsetCode,OffsetVoltage]=GainOffsetCorrect(dmm1_ip,dmm2_ip,dmm3_ip,dmm4_ip,dac_ip,80, target_volt);
 %%
 disp(GainCode);
 disp(GainVoltage);
@@ -47,10 +46,6 @@ dac.SetGain(1,GainCode(1));
 dac.SetGain(2,GainCode(2));
 dac.SetGain(3,GainCode(3));
 dac.SetGain(4,GainCode(4));
-dac.SetDefaultVolt(1, 65535);
-dac.SetDefaultVolt(2, 65535);
-dac.SetDefaultVolt(3, 65535);
-dac.SetDefaultVolt(4, 65535);
 %% 万用表设置
 
 dmm1 = DMM34465A(dmm1_ip);
@@ -65,8 +60,8 @@ dmm4.Open();
 TestCounter=1;
 %% 变量初始化
 TestVolCounter = 1;
-
-store_count = 100000;
+step = 10000;
+store_count = floor(65536/step);
 database1 = zeros(1,store_count);
 database2 = zeros(1,store_count);
 database3 = zeros(1,store_count);
@@ -77,27 +72,30 @@ temp2arr  = zeros(1,store_count);
 yyy = (database1:database2:database3:database4)';
 %生成时间数组
 t0 = datenum(datestr(now,0));
-time_arr = repmat(t0,store_count, 1)
-disp(time_arr(1));
-
-test_step = 1
-while(1)
+time_arr = repmat(t0,store_count, 1);
+dac.SetDefaultVolt(1, 0);
+dac.SetDefaultVolt(2, 0);
+dac.SetDefaultVolt(3, 0);
+dac.SetDefaultVolt(4, 0);
+test_step = 1;
+while(test_step<=store_count)
     % 循环提示信息输出
-    display(['当前文件测试次数',num2str(TestVolCounter)]);
+    display(['当前测试码值',num2str(test_step*step)]);
     % 万用表数据采集
-    dmm1_value=dmm1.measure_count(test_step);
-    dmm2_value=dmm2.measure_count(test_step);
-    dmm3_value=dmm3.measure_count(test_step);
-    dmm4_value=dmm4.measure_count(test_step);
+    dmm1_value=dmm1.measure_count(1);
+    dmm2_value=dmm2.measure_count(1);
+    dmm3_value=dmm3.measure_count(1);
+    dmm4_value=dmm4.measure_count(1);
+    %测量温度
     temp1 = dac.GetDA1_temp();
     temp2 = dac.GetDA2_temp();
-    qq = TestVolCounter*test_step-test_step+1:TestVolCounter*test_step;
-    database1(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step) = dmm1_value(:);
-    database2(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step) = dmm2_value(:);
-    database3(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step) = dmm3_value(:);
-    database4(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step) = dmm4_value(:);
-    temp1arr(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step) = temp1;
-    temp2arr(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step) = temp2;
+    %存储数据 温度
+    database1(test_step) = dmm1_value(:);
+    database2(test_step) = dmm2_value(:);
+    database3(test_step) = dmm3_value(:);
+    database4(test_step) = dmm4_value(:);
+    temp1arr(test_step) = temp1;
+    temp2arr(test_step) = temp2;
     delta_ab = dmm2_value - dmm1_value + 0.64;
     delta_ac = dmm3_value - dmm1_value + 0.64;
     delta_ad = dmm4_value - dmm3_value + 0.64;
@@ -106,18 +104,18 @@ while(1)
     x_pick = datenum(time_now);
     x=x_pick;
     disp(time_now)
-    time_arr(TestVolCounter*test_step-test_step+1:TestVolCounter*test_step,:) = x_pick;
-    TestCounter=TestCounter+1;
-    
-    if(TestVolCounter == store_count/test_step)
-        %% 创建记录文件
-        filename = strcat(pwd,strcat(strcat('\data\',['芯片温度与电压关系',num2str(TestCounter),'_',datestr(now,30)]),'.mat'));
-        save('filename.mat');
-        movefile('fileName.mat',filename);    
-        TestVolCounter = 1;
-    end
-    TestVolCounter = TestVolCounter+1;
+    time_arr(test_step) = x_pick;
+    dac.SetDefaultVolt(1, test_step*step);
+    dac.SetDefaultVolt(2, test_step*step);
+    dac.SetDefaultVolt(3, test_step*step);
+    dac.SetDefaultVolt(4, test_step*step);
+    test_step=test_step+1;
 end
+
+%% 创建记录文件
+filename = strcat(pwd,strcat(strcat('\data\',['芯片温度与电压关系',num2str(TestCounter),'_',datestr(now,30)]),'.mat'));
+save('filename.mat');
+movefile('fileName.mat',filename); 
 %%
 dmm1.Close;
 dmm2.Close;

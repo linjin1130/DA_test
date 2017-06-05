@@ -64,7 +64,7 @@ function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(d
         error = -1;
         gain = 513;
         loop_counter=0;
-        while(0 ~=error)
+        while(0 ~=error && v_h < 2)
             dac.SetGain(dac_ch,gaincode(gain));
             dac.CheckStatus();
             voltage = measure_vpp(dmm,dac,dac_ch);
@@ -77,6 +77,8 @@ function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(d
                 dmm3.Close();
                 dmm4.Close();
                 display(strcat('增益校正出错,offset=',num2str(gain)));
+                gain = 0;
+                break;
             end
             loop_counter=loop_counter+1;
         end
