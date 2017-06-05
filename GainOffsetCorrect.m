@@ -1,18 +1,11 @@
-% author:linjin
-% data:2017/5/23
-% version:1.0
-% filename:temperature_relationship.m
-% describe:将同一个DA板的4个通道校准为目标电压值
-%%
-
-function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(dmm1_ip,dmm2_ip,dmm3_ip,dmm4_ip, dac_ip,port)
+function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(dmm1_ip,dmm2_ip,dmm3_ip,dmm4_ip, dac_ip,port, target_volt)
     %Detailed explanation goes here
     GainCode   =zeros(1,4);
     GainVoltage =zeros(1,4);
     OffsetCode =zeros(1,4);
     OffsetVoltage=zeros(1,4);
     dac_ch=1;
-    gain_set=1.28;
+    gain_set=target_volt;
     offset_set=0;
     %% 增益、偏置校正
     dac = USTCDAC(dac_ip,port);
@@ -36,6 +29,12 @@ function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(d
         %% 系统校正,并记录数据
         display('增益校正...');
         %% 将设置输出模式并开始输出
+%         waveobj = waveform();
+%         seq  = waveobj.generate_seq(32);
+%         dac.WriteSeq(dac_ch,0,seq);
+%         dac.StartStop(2^(dac_ch-1));
+%         dac.CheckStatus();
+        
         %% 执行增益校正算法
        
         if(dac_ch==1)
@@ -64,7 +63,7 @@ function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(d
         error = -1;
         gain = 513;
         loop_counter=0;
-        while(0 ~=error && v_h < 2)
+        while(0 ~=error)
             dac.SetGain(dac_ch,gaincode(gain));
             dac.CheckStatus();
             voltage = measure_vpp(dmm,dac,dac_ch);
@@ -77,7 +76,7 @@ function [ GainCode,GainVoltage,OffsetCode,OffsetVoltage ] = GainOffsetCorrect(d
                 dmm3.Close();
                 dmm4.Close();
                 display(strcat('增益校正出错,offset=',num2str(gain)));
-                gain = 0;
+                gain = 513;
                 break;
             end
             loop_counter=loop_counter+1;
