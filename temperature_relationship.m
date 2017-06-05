@@ -9,11 +9,11 @@
 clc;
 clear all;
 %% 系统校正目标值
-dac_ip='10.0.2.1';
-dmm1_ip='10.0.254.2';
-dmm2_ip='10.0.254.1';
-dmm3_ip='10.0.254.7';
-dmm4_ip='10.0.254.8';
+dac_ip='10.0.2.2';
+dmm1_ip='10.0.254.3';
+dmm2_ip='10.0.254.4';
+dmm3_ip='10.0.254.5';
+dmm4_ip='10.0.254.6';
 
 dac_ch=1;
 gain_code1 = 398;
@@ -29,7 +29,6 @@ GainCode   =zeros(1,4);
 GainVoltage =zeros(1,4);
 OffsetCode =zeros(1,4);
 OffsetVoltage=zeros(1,4);
-%%
 [GainCode,GainVoltage,OffsetCode,OffsetVoltage]=GainOffsetCorrect(dmm1_ip,dmm2_ip,dmm3_ip,dmm4_ip,dac_ip,80);
 %%
 disp(GainCode);
@@ -43,6 +42,7 @@ dac.Open();
 display('DAC Init...');
 dac.PowerOnDAC(1,0);
 dac.PowerOnDAC(2,0);
+dac.StartStop(240);
 dac.SetGain(1,GainCode(1));
 dac.SetGain(2,GainCode(2));
 dac.SetGain(3,GainCode(3));
@@ -131,25 +131,25 @@ bb = database2(1:1:TestCounter);
 %%
 figure;
 subplot(3,2,3);
-plot(time_arr(1:1:TestCounter-1), database1(1:1:TestCounter-1), 'r.', 'MarkerSize', 6);
+plot(time_arr(1:1:TestVolCounter-1), database1(1:1:TestVolCounter-1), 'r.', 'MarkerSize', 6);
 title('通道1电压');
 ylabel('电压(V)');
 hold on;
 datetick('x', 0);
 subplot(3,2,5);
-plot(time_arr(1:1:TestCounter-1), database2(1:1:TestCounter-1), 'g.', 'MarkerSize', 6);
+plot(time_arr(1:1:TestVolCounter-1), database2(1:1:TestVolCounter-1), 'g.', 'MarkerSize', 6);
 title('通道2电压');
 ylabel('电压(V)');
 xlabel('采样时间');
 hold on;
 datetick('x', 0)
 subplot(3,2,4);
-plot(time_arr(1:1:TestCounter-1), database3(1:1:TestCounter-1), 'b.', 'MarkerSize', 6);
+plot(time_arr(1:1:TestVolCounter-1), database3(1:1:TestVolCounter-1), 'b.', 'MarkerSize', 6);
 title('通道3电压');
 hold on;
 datetick('x', 0);
 subplot(3,2,6);
-plot(time_arr(1:1:TestCounter-1), database4(1:1:TestCounter-1), 'k.', 'MarkerSize', 6);
+plot(time_arr(1:1:TestVolCounter-1), database4(1:1:TestVolCounter-1), 'k.', 'MarkerSize', 6);
 title('通道4电压');
 xlabel('采样时间');
 hold on;
@@ -161,13 +161,13 @@ datetick('x', 0)
 %       plot(x_pick, delta_ad, 'k+', 'MarkerSize', 6);
 %      hold on;
 subplot(3,2,1);
-plot(time_arr(1:1:TestCounter-1), temp1arr(1:1:TestCounter-1), 'cs', 'MarkerSize', 6);
+plot(time_arr(1:1:TestVolCounter-1), temp1arr(1:1:TestVolCounter-1), 'cs', 'MarkerSize', 6);
 title('芯片1温度');
 ylabel('温度（℃）');
 hold on;
 datetick('x', 0);
 subplot(3,2,2);
-plot(time_arr(1:1:TestCounter-1), temp2arr(1:1:TestCounter-1), 'md', 'MarkerSize', 6);
+plot(time_arr(1:1:TestVolCounter-1), temp2arr(1:1:TestVolCounter-1), 'md', 'MarkerSize', 6);
 title('芯片2温度');
 hold on;
 datetick('x', 0);
